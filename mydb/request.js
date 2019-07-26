@@ -1,16 +1,14 @@
-const {
-  MongoClient,
-  ObjectId
-} = require("mongodb");
-const getQuery = require("./query");
+const { MongoClient, ObjectId } = require("mongodb");
 const mongodbUrl = "mongodb://localhost:27017/";
+// const mongodbUrl = "mongodb://10.1.226.182:27018/";
 
-exports.mongodbDealData = function (req, res) {
+exports.mongodbDealData = function(req, res) {
   MongoClient.connect(
-    mongodbUrl, {
+    mongodbUrl,
+    {
       useNewUrlParser: true
     },
-    function (err, db) {
+    function(err, db) {
       if (err) throw err;
       const dbo = db.db("shopping");
       dealQuery(req, res, dbo, db);
@@ -30,7 +28,7 @@ function dealQuery(req, res, dbo, db) {
   let count;
 
   const operations = {
-    list: function () {
+    list: function() {
       const keys = Object.keys(query);
       const len = keys.length;
       const sortTypes = {
@@ -70,7 +68,7 @@ function dealQuery(req, res, dbo, db) {
       dbo
         .collection(tableName)
         .find(where)
-        .count(function (err, results) {
+        .count(function(err, results) {
           if (err) throw err;
           count = results;
         });
@@ -85,7 +83,6 @@ function dealQuery(req, res, dbo, db) {
         return false;
       }
 
-
       dbo
         .collection(tableName)
         .find(where)
@@ -94,16 +91,15 @@ function dealQuery(req, res, dbo, db) {
         .limit(limit)
         .toArray(dealResult);
     },
-    create: function () {
+    create: function() {
       Object.keys(body).forEach(key => {
         if (/id/.test(key.toLowerCase())) {
           body[key] = ObjectId(body[key]);
         }
       });
       dbo.collection(tableName).insertOne(body, dealResult);
-
     },
-    update: function () {
+    update: function() {
       Object.keys(body).forEach(key => {
         if (/id/.test(key.toLowerCase())) {
           body[key] = ObjectId(body[key]);
@@ -122,10 +118,10 @@ function dealQuery(req, res, dbo, db) {
       if (tableName === "orders") {
         updateIntegrals({
           orderId: where._id
-        })
+        });
       }
     },
-    delete: function () {
+    delete: function() {
       const where = {
         _id: ObjectId(query._id)
       };
@@ -133,12 +129,15 @@ function dealQuery(req, res, dbo, db) {
 
       //删除订单记录的同时，删除对应积分记录
       if (tableName === "orders") {
-        dbo.collection("integrals").deleteOne({
-          orderId: where._id
-        }, dealResult);
+        dbo.collection("integrals").deleteOne(
+          {
+            orderId: where._id
+          },
+          dealResult
+        );
       }
     },
-    kv: function () {
+    kv: function() {
       let keys = Object.keys(query);
       let project = {};
       if (keys.length) {
@@ -155,7 +154,7 @@ function dealQuery(req, res, dbo, db) {
         .project(project)
         .toArray(dealResult);
     },
-    search: function () {
+    search: function() {
       let project = {
         name: 1
       };
@@ -172,7 +171,7 @@ function dealQuery(req, res, dbo, db) {
   };
   const dealResult = (err, results) => {
     if (err) throw err;
-    // console.log("The result is: ", results);
+    console.log("The result is: ", results);
     const result = {
       msg: "ok",
       code: 0
@@ -194,7 +193,8 @@ function dealQuery(req, res, dbo, db) {
   const queryProducts = where => {
     dbo
       .collection(tableName)
-      .aggregate([{
+      .aggregate([
+        {
           $match: where
         }, //查询条件
         {
@@ -253,7 +253,8 @@ function dealQuery(req, res, dbo, db) {
   const queryCustomers = where => {
     dbo
       .collection(tableName)
-      .aggregate([{
+      .aggregate([
+        {
           $match: where
         }, //查询条件
         {
@@ -301,25 +302,31 @@ function dealQuery(req, res, dbo, db) {
   };
 
   const insertIntegrals = orderId => {
-    const integral = body.sellOutCurrency === "RMB" ? body.sellOut : Math.floor(body.sellOut * body.exchangeRate);
+    const integral =
+      body.sellOutCurrency === "RMB"
+        ? body.sellOut
+        : Math.floor(body.sellOut * body.exchangeRate);
     const obj = {
       customerId: body.customerId,
       orderId,
       integral,
       createDate: body.createDate,
       updateDate: body.updateDate
-    }
+    };
     dbo.collection("integrals").insertOne(obj, dealResult);
-  }
+  };
   const updateIntegrals = where => {
-    const integral = body.sellOutCurrency === "RMB" ? body.sellOut : Math.floor(body.sellOut * body.exchangeRate);
+    const integral =
+      body.sellOutCurrency === "RMB"
+        ? body.sellOut
+        : Math.floor(body.sellOut * body.exchangeRate);
     const obj = {
       customerId: body.customerId,
       integral,
       updateDate: body.updateDate
-    }
+    };
     dbo.collection("integrals").updateOne(where, obj, dealResult);
-  }
+  };
 
   operations[operate]();
 }
